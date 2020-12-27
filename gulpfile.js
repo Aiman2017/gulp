@@ -18,6 +18,10 @@ const uglify = require("gulp-uglify-es").default;
 const imagemin = require("gulp-imagemin");
 const gutil = require("gulp-util");
 const ftp = require("vinyl-ftp");
+const rev = require("gulp-rev");
+const revRewrite = require("gulp-rev-rewrite");
+const revdel = require("gulp-rev-delete-original");
+const htmlmin = require("gulp-htmlmin");
 
 // для шрифтов
 const fonts = () => {
@@ -63,7 +67,7 @@ const fontsStyle = (done) => {
 
 // svg
 const svgSprites = () => {
-  return src("./src/img/**.svg")
+  return src("./src/img/svg/**.svg")
     .pipe(
       svgSprite({
         mode: {
@@ -76,7 +80,7 @@ const svgSprites = () => {
     .pipe(dest("./app/img"));
 };
 
-// преоброзвать стили
+// преобразование стили
 const styles = () => {
   return src("./src/scss/**/*.scss")
     .pipe(sourcemaps.init())
@@ -107,7 +111,7 @@ const styles = () => {
 
 // html
 const htmlInclude = () => {
-  return src(["./src/index.html"])
+  return src(["./src/*.html"])
     .pipe(
       fileInclude({
         prefix: "@",
@@ -179,7 +183,7 @@ const watchFiles = () => {
   });
 
   watch("./src/scss/**/*.scss", styles);
-  watch("./src/index.html", htmlInclude);
+  watch("./src/*.html", htmlInclude);
   watch("./src/img/**jpg", imgToApp);
   watch("./src/img/**png", imgToApp);
   watch("./src/img/**jpeg", imgToApp);
@@ -201,7 +205,7 @@ exports.default = series(
   watchFiles
 );
 
-// сжатие фотографии
+// сжатия фотографии
 const imagesCompress = () =>
   src(["./src/img/**.jpg", "./src/img/**.png", "./src/img/**.jpeg"])
     .pipe(
@@ -211,6 +215,7 @@ const imagesCompress = () =>
     )
     .pipe(dest("./app/img"));
 
+// building scripts and styles
 const stylesBuild = () => {
   return src("./src/scss/**/*.scss")
     .pipe(
@@ -263,11 +268,47 @@ const scriptsBuild = () => {
     .pipe(uglify().on("error", notify.onError()))
     .pipe(dest("./app/js"));
 };
+
+// caching
+const cache = () => {
+  return src("app/**/*.{css,js,svg,png,jpg,jpeg,woff2,woff}", {
+    base: "app",
+  })
+    .pipe(rev())
+    .pipe(revdel())
+    .pipe(dest("app"))
+    .pipe(rev.manifest("rev.json"))
+    .pipe(dest("app"));
+};
+
+// переименования файлы в форматы json
+const rewrite = () => {
+  const manifest = src("app/rev.json");
+  return src("app/**/*.html").pipe(
+    revRewrite({
+      manifest,
+    }).pipe(dest("app"))
+  );
+};
+
+// Minifying html
+const htmlMinify = () => {
+  return src("app/**/*.html")
+    .pipe(
+      htmlmin({
+        collapseWhitespace: true,
+      })
+    )
+    .pipe(dest("app"));
+};
+
+exports.cache = series(cache, rewrite);
 exports.build = series(
   clean,
   parallel(htmlInclude, fonts, scriptsBuild, imgToApp, svgSprites, resources),
   fontsStyle,
   stylesBuild,
+  htmlMinify,
   imagesCompress
 );
 
