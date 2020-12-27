@@ -1,0 +1,10 @@
+@mixin font-face($font-family, $url) {
+    @font-face {
+        font-family: '#{$font-family}';
+        src: url('../fonts/Gilroy-UltraLight.ttf') format('ttf'),
+        url('../#{$url}.woff') format('woff');
+        font-display: swap;
+        font-style: normal;
+
+    } 
+}

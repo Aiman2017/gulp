@@ -1,0 +1,21 @@
+@import "second";
+@import "fonts";
+
+body{
+    background: red;
+  
+}
+h1{
+    font-family: 'Arial';
+}
+.mais{
+    margin: 50px;
+    &__item {
+        background: black;
+        transform: rotate(360deg);
+        opacity: 0.5;
+        transition: all 1s linear;
+    }
+}
+
+
